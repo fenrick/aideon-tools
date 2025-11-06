@@ -89,7 +89,7 @@ pub fn build_workbook(nodes: &[Node]) -> Result<WorkbookData> {
         }
     }
 
-    entities.sort_by(|lhs, rhs| lhs.cmp(rhs));
+    entities.sort();
 
     let mut tables: Vec<SheetTable> = Vec::new();
     let mut metadata_rows: Vec<Vec<String>> = Vec::new();
@@ -113,7 +113,7 @@ pub fn build_workbook(nodes: &[Node]) -> Result<WorkbookData> {
     }
 
     for ((type_name, predicate), mut builder) in child_builders {
-        builder.rows.sort_by(|lhs, rhs| lhs.cmp(rhs));
+        builder.rows.sort();
         let raw_sheet = format!("{type_name}__{predicate}");
         let sheet_name = sheet_names.assign(&raw_sheet);
 
@@ -236,7 +236,7 @@ impl TypeTableBuilder {
     fn into_table(self, sheet_name: String) -> SheetTable {
         let mut columns = Vec::with_capacity(self.columns.len() + 1);
         columns.push("id".to_string());
-        columns.extend(self.columns.into_iter());
+        columns.extend(self.columns);
 
         let mut rows = Vec::with_capacity(self.rows.len());
         for row in self.rows {

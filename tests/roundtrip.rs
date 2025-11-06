@@ -146,15 +146,17 @@ fn jsonld_rdf_jsonld_roundtrip_preserves_nodes() {
 
     let temp_dir = tempdir().expect("temporary directory");
     let json_path = temp_dir.path().join("input.jsonld");
-    fs::write(&json_path, serde_json::to_string_pretty(&json_source).unwrap())
-        .expect("JSON-LD input written");
+    fs::write(
+        &json_path,
+        serde_json::to_string_pretty(&json_source).unwrap(),
+    )
+    .expect("JSON-LD input written");
 
     let rdf_path = temp_dir.path().join("graph.ttl");
     sync::jsonld_to_rdf(&json_path, &rdf_path, RdfFormat::Turtle).expect("JSON-LD to RDF");
 
     let roundtrip_path = temp_dir.path().join("roundtrip.jsonld");
-    sync::rdf_to_jsonld(&rdf_path, &roundtrip_path, Some(context.clone()))
-        .expect("RDF to JSON-LD");
+    sync::rdf_to_jsonld(&rdf_path, &roundtrip_path, Some(context.clone())).expect("RDF to JSON-LD");
 
     let roundtrip = fs::read_to_string(&roundtrip_path).expect("roundtrip JSON read");
     let roundtrip_value: serde_json::Value =
@@ -162,8 +164,8 @@ fn jsonld_rdf_jsonld_roundtrip_preserves_nodes() {
 
     let original_nodes =
         jsonld::parse_jsonld_document(&json_source).expect("original nodes parsed");
-    let restored_nodes = jsonld::parse_jsonld_document(&roundtrip_value)
-        .expect("roundtrip nodes parsed");
+    let restored_nodes =
+        jsonld::parse_jsonld_document(&roundtrip_value).expect("roundtrip nodes parsed");
 
     assert_eq!(original_nodes, restored_nodes);
 }

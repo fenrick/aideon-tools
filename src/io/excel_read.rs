@@ -8,6 +8,9 @@ use crate::error::{Result, ToolError};
 use crate::flatten::{ENTITIES_SHEET, METADATA_SHEET, UNTYPED_MARKER};
 use crate::model::{ArrayValue, Node, PropertyValue, ScalarValue};
 
+type TypeSheetMap = HashMap<String, String>;
+type ChildSheetMap = HashMap<String, (String, String)>;
+
 /// Reads nodes from an Excel workbook following the conventions produced by the
 /// [`excel_write`](crate::io::excel_write) module.
 pub fn read_nodes(path: &Path) -> Result<Vec<Node>> {
@@ -45,14 +48,12 @@ fn read_required_sheet<R: std::io::Read + std::io::Seek>(
     Ok(range)
 }
 
-fn parse_metadata(
-    range: &calamine::Range<DataType>,
-) -> Result<(HashMap<String, String>, HashMap<String, (String, String)>)> {
-    let mut type_sheets = HashMap::new();
-    let mut child_sheets = HashMap::new();
+fn parse_metadata(range: &calamine::Range<DataType>) -> Result<(TypeSheetMap, ChildSheetMap)> {
+    let mut type_sheets: TypeSheetMap = HashMap::new();
+    let mut child_sheets: ChildSheetMap = HashMap::new();
 
     for row in range.rows().skip(1) {
-        let kind = cell_to_string(row.get(0));
+        let kind = cell_to_string(row.first());
         if kind.is_empty() {
             continue;
         }
@@ -82,7 +83,7 @@ fn initialize_nodes(range: &calamine::Range<DataType>) -> Result<BTreeMap<String
     let mut nodes = BTreeMap::new();
 
     for row in range.rows().skip(1) {
-        let id = cell_to_string(row.get(0));
+        let id = cell_to_string(row.first());
         if id.is_empty() {
             continue;
         }
@@ -116,7 +117,7 @@ fn ingest_type_sheet(
     }
 
     for row in range.rows().skip(1) {
-        let id = cell_to_string(row.get(0));
+        let id = cell_to_string(row.first());
         if id.is_empty() {
             continue;
         }
@@ -175,7 +176,7 @@ fn ingest_child_sheet(
     nodes: &mut BTreeMap<String, Node>,
 ) -> Result<()> {
     for row in range.rows().skip(1) {
-        let parent = cell_to_string(row.get(0));
+        let parent = cell_to_string(row.first());
         let target = cell_to_string(row.get(1));
         if parent.is_empty() || target.is_empty() {
             continue;
