@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-calamine = { version = "0.21", default-features = false, features = ["chrono"] }
+calamine = { version = "0.31", default-features = false, features = ["chrono"] }
 clap = { version = "4.5", features = ["derive"] }
 oxigraph = { version = "0.5", default-features = false }
 rust_xlsxwriter = "0.61"
