@@ -61,4 +61,8 @@ pub enum ToolError {
     /// Raised when the user provides a path that does not exist.
     #[error("input file not found: {0}")]
     MissingInput(PathBuf),
+
+    /// Raised when the tracing subscriber fails to initialise.
+    #[error("failed to initialise logging: {0}")]
+    Logging(String),
 }

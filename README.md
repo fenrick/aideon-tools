@@ -2,6 +2,28 @@
 
 Command line tools for Aideon Praxis.
 
+## Usage
+
+```bash
+aideon-tools sync \
+  --from jsonld input.jsonld \
+  --to xlsx output.xlsx \
+  --context context.json
+```
+
+Refer to `aideon-tools sync --help` for the complete list of supported
+conversions and options.
+
+## Logging
+
+The CLI emits structured logs via [`tracing`](https://docs.rs/tracing) using the
+`--log-level` flag (defaults to `info`). The level can also be overridden with
+`RUST_LOG`, which takes precedence when set:
+
+```bash
+RUST_LOG=aideon_tools=debug aideon-tools sync --from rdf --to jsonld --log-level warn
+```
+
 ## Development
 
 This repository targets the Rust 2024 edition and uses CI workflows to enforce formatting, linting, and testing across Linux, macOS, and Windows. Before opening a pull request:
