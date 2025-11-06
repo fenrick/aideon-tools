@@ -27,12 +27,12 @@ pub fn read_rdf(path: &Path, format: Option<RdfFormat>) -> Result<Vec<Node>> {
 
     let file = File::open(path)?;
     let parser = RdfParser::from_format(format);
-    let mut quad_parser = parser.for_reader(file);
+    let quad_parser = parser.for_reader(file);
 
     let mut nodes: BTreeMap<String, Node> = BTreeMap::new();
 
-    while let Some(quad) = quad_parser.next() {
-        let quad = quad.map_err(|err| ToolError::Rdf(err.to_string()))?;
+    for quad_result in quad_parser {
+        let quad = quad_result.map_err(|err| ToolError::Rdf(err.to_string()))?;
 
         if !matches!(quad.graph_name, GraphName::DefaultGraph) {
             continue;
