@@ -28,6 +28,14 @@
           {
             "path": "dist/aideon-tools-x86_64-unknown-linux-gnu.tar.gz",
             "label": "aideon-tools binary (x86_64-unknown-linux-gnu)"
+          },
+          {
+            "path": "dist/aideon-tools-aarch64-apple-darwin.tar.gz",
+            "label": "aideon-tools binary (aarch64-apple-darwin)"
+          },
+          {
+            "path": "dist/aideon-tools-x86_64-pc-windows-msvc.zip",
+            "label": "aideon-tools binary (x86_64-pc-windows-msvc)"
           }
         ]
       }

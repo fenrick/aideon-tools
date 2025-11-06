@@ -5,7 +5,61 @@ on:
     branches: ["main"]
 
 jobs:
+  build-artifacts:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_name: aideon-tools-x86_64-unknown-linux-gnu.tar.gz
+          - os: macos-14
+            target: aarch64-apple-darwin
+            archive_name: aideon-tools-aarch64-apple-darwin.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_name: aideon-tools-x86_64-pc-windows-msvc.zip
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo builds
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package release artifacts (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/aideon-tools dist/aideon-tools
+          tar -C dist -czf dist/${{ matrix.archive_name }} aideon-tools
+          rm dist/aideon-tools
+
+      - name: Package release artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item "target\${{ matrix.target }}\release\aideon-tools.exe" "dist\aideon-tools.exe"
+          Compress-Archive -Path "dist\aideon-tools.exe" -DestinationPath "dist\${{ matrix.archive_name }}"
+          Remove-Item "dist\aideon-tools.exe"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive_name }}
+          path: dist/${{ matrix.archive_name }}
+
   semantic-release:
+    needs: build-artifacts
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,23 +73,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          targets: x86_64-unknown-linux-gnu
-
-      - name: Cache Cargo builds
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build release binary
-        run: cargo build --release --locked
-
-      - name: Package release artifacts
-        run: |
-          mkdir -p dist
-          cp target/release/aideon-tools dist/aideon-tools
-          tar -C dist -czf dist/aideon-tools-x86_64-unknown-linux-gnu.tar.gz aideon-tools
-          rm dist/aideon-tools
+          path: dist
+          merge-multiple: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
