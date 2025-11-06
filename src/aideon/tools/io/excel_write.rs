@@ -23,17 +23,15 @@ pub fn write_workbook(path: &Path, workbook: &WorkbookData) -> Result<()> {
             }
         }
 
-        let mut excel_table = rust_xlsxwriter::Table::new();
-        excel_table.set_autofilter(true);
+        let excel_table = rust_xlsxwriter::Table::new().set_autofilter(true);
 
-        if !table.rows.is_empty() {
-            let row_end = table.rows.len() as u32;
-            let col_end = (table.columns.len() as u16).saturating_sub(1);
-            worksheet.add_table(0, 0, row_end, col_end, &excel_table)?;
+        let col_end = (table.columns.len() as u16).saturating_sub(1);
+        let row_end = if table.rows.is_empty() {
+            0
         } else {
-            let col_end = (table.columns.len() as u16).saturating_sub(1);
-            worksheet.add_table(0, 0, 0, col_end, &excel_table)?;
-        }
+            table.rows.len() as u32
+        };
+        worksheet.add_table(0, 0, row_end, col_end, &excel_table)?;
     }
 
     workbook_writer.save(path)?;

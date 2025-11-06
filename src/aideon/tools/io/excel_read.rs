@@ -1,7 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, btree_map::Entry};
 use std::path::Path;
 
-use calamine::{DataType, Reader, Xlsx, open_workbook};
+use calamine::{Data, Reader, Xlsx, open_workbook};
 use serde_json::Value;
 
 use crate::aideon::tools::error::{Result, ToolError};
@@ -42,26 +42,28 @@ pub fn read_nodes(path: &Path) -> Result<Vec<Node>> {
 fn read_required_sheet<R: std::io::Read + std::io::Seek>(
     workbook: &mut Xlsx<R>,
     name: &str,
-) -> Result<calamine::Range<DataType>> {
-    let range_result = workbook
-        .worksheet_range(name)
-        .ok_or_else(|| ToolError::InvalidWorkbook(format!("missing sheet '{name}'")))?;
-    let range = range_result.map_err(ToolError::from)?;
-    Ok(range)
+) -> Result<calamine::Range<Data>> {
+    match workbook.worksheet_range(name) {
+        Ok(range) => Ok(range),
+        Err(calamine::XlsxError::WorksheetNotFound(_)) => Err(ToolError::InvalidWorkbook(format!(
+            "missing sheet '{name}'"
+        ))),
+        Err(err) => Err(err.into()),
+    }
 }
 
-fn parse_metadata(range: &calamine::Range<DataType>) -> Result<(TypeSheetMap, ChildSheetMap)> {
+fn parse_metadata(range: &calamine::Range<Data>) -> Result<(TypeSheetMap, ChildSheetMap)> {
     let mut type_sheets: TypeSheetMap = HashMap::new();
     let mut child_sheets: ChildSheetMap = HashMap::new();
 
     for row in range.rows().skip(1) {
-        let kind = cell_to_string(row.first());
+        let kind = string_at(row, 0);
         if kind.is_empty() {
             continue;
         }
-        let sheet = cell_to_string(row.get(1));
-        let type_name = cell_to_string(row.get(2));
-        let predicate = cell_to_string(row.get(3));
+        let sheet = string_at(row, 1);
+        let type_name = string_at(row, 2);
+        let predicate = string_at(row, 3);
 
         match kind.as_str() {
             "type" => {
@@ -81,24 +83,18 @@ fn parse_metadata(range: &calamine::Range<DataType>) -> Result<(TypeSheetMap, Ch
     Ok((type_sheets, child_sheets))
 }
 
-fn initialize_nodes(range: &calamine::Range<DataType>) -> Result<BTreeMap<NodeKey, Node>> {
+fn initialize_nodes(range: &calamine::Range<Data>) -> Result<BTreeMap<NodeKey, Node>> {
     let mut nodes = BTreeMap::new();
 
     for row in range.rows().skip(1) {
-        let id = cell_to_string(row.first());
+        let id = string_at(row, 0);
         if id.is_empty() {
             continue;
         }
-        let type_name = cell_to_string(row.get(1));
-        let graph = cell_to_string(row.get(2));
-        let graph = normalize_optional(graph);
-        let key = (graph.clone(), id.clone());
-        let entry = nodes
-            .entry(key)
-            .or_insert_with(|| Node::with_graph(id.clone(), graph.clone()));
-        entry.set_graph(graph);
+        let type_name = string_at(row, 1);
+        let node = ensure_node(&mut nodes, &id, string_at(row, 2));
         if !type_name.is_empty() && type_name != UNTYPED_MARKER {
-            entry.types.insert(type_name);
+            node.types.insert(type_name);
         }
     }
 
@@ -106,78 +102,41 @@ fn initialize_nodes(range: &calamine::Range<DataType>) -> Result<BTreeMap<NodeKe
 }
 
 fn ingest_type_sheet(
-    range: &calamine::Range<DataType>,
+    range: &calamine::Range<Data>,
     type_name: &str,
     nodes: &mut BTreeMap<NodeKey, Node>,
 ) -> Result<()> {
-    let headers: Vec<String> = match range.rows().next() {
-        Some(first_row) => first_row
-            .iter()
-            .map(|cell| cell_to_string(Some(cell)))
-            .collect(),
-        None => Vec::new(),
-    };
-
+    let headers = read_headers(range);
     if headers.is_empty() {
         return Ok(());
     }
 
     for row in range.rows().skip(1) {
-        let id = cell_to_string(row.first());
+        let id = string_at(row, 0);
         if id.is_empty() {
             continue;
         }
 
-        let graph = row
-            .get(1)
-            .map(|cell| cell_to_string(Some(cell)))
-            .unwrap_or_default();
-        let graph = normalize_optional(graph);
-        let key = (graph.clone(), id.clone());
-
-        let node = nodes
-            .entry(key)
-            .or_insert_with(|| Node::with_graph(id.clone(), graph.clone()));
-        node.set_graph(graph);
+        let node = ensure_node(nodes, &id, string_at(row, 1));
         if !type_name.is_empty() && type_name != UNTYPED_MARKER {
-            node.types.insert(type_name.to_string());
+            node.types.insert(type_name.to_owned());
         }
 
         for (col_idx, cell) in row.iter().enumerate().skip(2) {
-            let header = headers.get(col_idx).cloned().unwrap_or_default();
+            let Some(header) = headers.get(col_idx) else {
+                continue;
+            };
             if header.is_empty() {
                 continue;
             }
 
-            let value = cell_to_string(Some(cell));
-            if value.trim().is_empty() {
+            let raw_value = cell_to_string(Some(cell));
+            if raw_value.trim().is_empty() {
                 continue;
             }
 
-            if header.ends_with("Id") {
-                let predicate = header.strip_suffix("Id").unwrap().to_string();
-                node.properties
-                    .insert(predicate, PropertyValue::ObjectRef(value.clone()));
-            } else {
-                let parsed = serde_json::from_str::<Value>(&value)?;
-                match parsed {
-                    Value::Array(items) => {
-                        let scalars = items
-                            .into_iter()
-                            .map(value_to_scalar)
-                            .collect::<Result<Vec<_>>>()?;
-                        node.properties.insert(
-                            header.clone(),
-                            PropertyValue::Array(ArrayValue::Scalars(scalars)),
-                        );
-                    }
-                    other => {
-                        let scalar = value_to_scalar(other)?;
-                        node.properties
-                            .insert(header.clone(), PropertyValue::Scalar(scalar));
-                    }
-                }
-            }
+            let (predicate, property) = parse_property_entry(header, &raw_value)?;
+            node.insert_property(predicate, property);
         }
     }
 
@@ -185,7 +144,7 @@ fn ingest_type_sheet(
 }
 
 fn ingest_child_sheet(
-    range: &calamine::Range<DataType>,
+    range: &calamine::Range<Data>,
     predicate: &str,
     nodes: &mut BTreeMap<NodeKey, Node>,
 ) -> Result<()> {
@@ -193,42 +152,34 @@ fn ingest_child_sheet(
     let has_graph_column = header_width >= 3;
 
     for row in range.rows().skip(1) {
-        let parent = cell_to_string(row.first());
-        let parent_graph = if has_graph_column {
-            cell_to_string(row.get(1))
-        } else {
-            String::new()
-        };
-        let target = if has_graph_column {
-            cell_to_string(row.get(2))
-        } else {
-            cell_to_string(row.get(1))
-        };
+        let parent = string_at(row, 0);
+        let target_index = if has_graph_column { 2 } else { 1 };
+        let target = string_at(row, target_index);
         if parent.is_empty() || target.is_empty() {
             continue;
         }
 
-        let parent_graph = normalize_optional(parent_graph);
-        let key = (parent_graph.clone(), parent.clone());
+        let raw_graph = if has_graph_column {
+            string_at(row, 1)
+        } else {
+            String::new()
+        };
+        let node = ensure_node(nodes, &parent, raw_graph);
+        let predicate_key = predicate.to_string();
 
-        let node = nodes
-            .entry(key)
-            .or_insert_with(|| Node::with_graph(parent.clone(), parent_graph.clone()));
-        node.set_graph(parent_graph);
-        match node.properties.get_mut(predicate) {
-            Some(PropertyValue::Array(ArrayValue::ObjectRefs(ids))) => {
-                ids.push(target.clone());
-            }
-            Some(_) => {
-                return Err(ToolError::InvalidWorkbook(format!(
-                    "predicate '{predicate}' is not an object reference array"
-                )));
-            }
-            None => {
-                node.properties.insert(
-                    predicate.to_string(),
-                    PropertyValue::Array(ArrayValue::ObjectRefs(vec![target.clone()])),
-                );
+        match node.properties.entry(predicate_key) {
+            Entry::Occupied(mut entry) => match entry.get_mut() {
+                PropertyValue::Array(ArrayValue::ObjectRefs(ids)) => {
+                    ids.push(target);
+                }
+                _ => {
+                    return Err(ToolError::InvalidWorkbook(format!(
+                        "predicate '{predicate}' is not an object reference array"
+                    )));
+                }
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(PropertyValue::Array(ArrayValue::ObjectRefs(vec![target])));
             }
         }
     }
@@ -236,14 +187,71 @@ fn ingest_child_sheet(
     Ok(())
 }
 
-fn cell_to_string(cell: Option<&DataType>) -> String {
+/// Extracts the header row as owned strings, returning an empty collection when absent.
+fn read_headers(range: &calamine::Range<Data>) -> Vec<String> {
+    range
+        .rows()
+        .next()
+        .map(|row| row.iter().map(|cell| cell_to_string(Some(cell))).collect())
+        .unwrap_or_default()
+}
+
+/// Converts the cell at `index` into a `String`, returning an empty string when missing.
+fn string_at(row: &[Data], index: usize) -> String {
+    cell_to_string(row.get(index))
+}
+
+/// Returns the node matching `id` and `raw_graph`, normalising the graph identifier in the process.
+fn ensure_node<'a>(
+    nodes: &'a mut BTreeMap<NodeKey, Node>,
+    id: &str,
+    raw_graph: String,
+) -> &'a mut Node {
+    let graph = normalize_optional(raw_graph);
+    let id_key = id.to_owned();
+    let key = (graph.clone(), id_key.clone());
+    let node = nodes
+        .entry(key)
+        .or_insert_with(|| Node::with_graph(id_key.clone(), graph.clone()));
+    node.set_graph(graph);
+    node
+}
+
+/// Converts a header/value pair coming from a type sheet row into a property entry.
+fn parse_property_entry(header: &str, raw_value: &str) -> Result<(String, PropertyValue)> {
+    if let Some(predicate) = header.strip_suffix("Id") {
+        return Ok((
+            predicate.to_string(),
+            PropertyValue::ObjectRef(raw_value.to_string()),
+        ));
+    }
+
+    let parsed = serde_json::from_str::<Value>(raw_value)?;
+    let property = match parsed {
+        Value::Array(items) => {
+            let scalars = items
+                .into_iter()
+                .map(value_to_scalar)
+                .collect::<Result<Vec<_>>>()?;
+            PropertyValue::Array(ArrayValue::Scalars(scalars))
+        }
+        other => PropertyValue::Scalar(value_to_scalar(other)?),
+    };
+
+    Ok((header.to_string(), property))
+}
+
+fn cell_to_string(cell: Option<&Data>) -> String {
     match cell {
-        Some(DataType::String(value)) => value.clone(),
-        Some(DataType::Float(value)) => value.to_string(),
-        Some(DataType::Int(value)) => value.to_string(),
-        Some(DataType::Bool(value)) => value.to_string(),
-        Some(DataType::Empty) | None => String::new(),
-        Some(other) => other.to_string(),
+        Some(Data::String(value)) => value.clone(),
+        Some(Data::Float(value)) => value.to_string(),
+        Some(Data::Int(value)) => value.to_string(),
+        Some(Data::Bool(value)) => value.to_string(),
+        Some(Data::DateTime(value)) => value.to_string(),
+        Some(Data::DateTimeIso(value)) => value.clone(),
+        Some(Data::DurationIso(value)) => value.clone(),
+        Some(Data::Error(value)) => value.to_string(),
+        Some(Data::Empty) | None => String::new(),
     }
 }
 
