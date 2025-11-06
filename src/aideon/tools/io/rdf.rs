@@ -6,8 +6,8 @@ pub use oxigraph::io::{JsonLdProfileSet, RdfFormat};
 use oxigraph::io::{RdfParser, RdfSerializer};
 use oxigraph::model::{BlankNode, GraphName, Literal, NamedNode, NamedOrBlankNode, Quad, Term};
 
-use crate::error::{Result, ToolError};
-use crate::model::{ArrayValue, Node, PropertyValue, ScalarValue};
+use crate::aideon::tools::error::{Result, ToolError};
+use crate::aideon::tools::model::{ArrayValue, Node, PropertyValue, ScalarValue};
 
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const XSD_BOOLEAN: &str = "http://www.w3.org/2001/XMLSchema#boolean";

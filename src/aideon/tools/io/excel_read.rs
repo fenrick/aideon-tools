@@ -4,9 +4,9 @@ use std::path::Path;
 use calamine::{DataType, Reader, Xlsx, open_workbook};
 use serde_json::Value;
 
-use crate::error::{Result, ToolError};
-use crate::flatten::{ENTITIES_SHEET, METADATA_SHEET, UNTYPED_MARKER};
-use crate::model::{ArrayValue, Node, PropertyValue, ScalarValue};
+use crate::aideon::tools::error::{Result, ToolError};
+use crate::aideon::tools::flatten::{ENTITIES_SHEET, METADATA_SHEET, UNTYPED_MARKER};
+use crate::aideon::tools::model::{ArrayValue, Node, PropertyValue, ScalarValue};
 
 type TypeSheetMap = HashMap<String, String>;
 type ChildSheetMap = HashMap<String, (String, String)>;

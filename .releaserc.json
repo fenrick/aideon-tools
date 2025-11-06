@@ -1,5 +1,7 @@
 {
-  "branches": ["main"],
+  "branches": [
+    "main"
+  ],
   "tagFormat": "v${version}",
   "plugins": [
     "@semantic-release/commit-analyzer",
@@ -14,13 +16,20 @@
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md"]
+        "assets": [
+          "CHANGELOG.md"
+        ]
       }
     ],
     [
       "@semantic-release/github",
       {
-        "assets": []
+        "assets": [
+          {
+            "path": "dist/aideon-tools-x86_64-unknown-linux-gnu.tar.gz",
+            "label": "aideon-tools binary (x86_64-unknown-linux-gnu)"
+          }
+        ]
       }
     ]
   ]

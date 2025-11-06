@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use serde_json::Value;
 
-use crate::error::Result;
-use crate::model::{ArrayValue, Node, PropertyValue, ScalarValue};
+use crate::aideon::tools::error::Result;
+use crate::aideon::tools::model::{ArrayValue, Node, PropertyValue, ScalarValue};
 
 /// Name used for nodes that do not declare a type.
 pub const UNTYPED_MARKER: &str = "__untyped__";

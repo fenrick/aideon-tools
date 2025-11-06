@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use serde_json::{Map, Value};
 use uuid::Uuid;
 
-use crate::error::{Result, ToolError};
-use crate::model::{ArrayValue, Node, PropertyValue, ScalarValue};
+use crate::aideon::tools::error::{Result, ToolError};
+use crate::aideon::tools::model::{ArrayValue, Node, PropertyValue, ScalarValue};
 
 /// Parses a JSON-LD document into a vector of [`Node`]s.
 pub fn parse_jsonld_document(document: &Value) -> Result<Vec<Node>> {

@@ -2,8 +2,8 @@ use std::path::Path;
 
 use rust_xlsxwriter::Workbook;
 
-use crate::error::Result;
-use crate::flatten::WorkbookData;
+use crate::aideon::tools::error::Result;
+use crate::aideon::tools::flatten::WorkbookData;
 
 /// Writes the provided workbook data to the given path.
 pub fn write_workbook(path: &Path, workbook: &WorkbookData) -> Result<()> {
