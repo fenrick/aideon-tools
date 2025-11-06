@@ -23,7 +23,7 @@ pub fn jsonld_to_excel(input: &Path, output: &Path) -> Result<()> {
 /// Synchronises an Excel workbook back into JSON-LD.
 pub fn excel_to_jsonld(input: &Path, output: &Path, context: Option<Value>) -> Result<()> {
     let nodes = excel_read::read_nodes(input)?;
-    let json = jsonld::nodes_to_jsonld(&nodes, context);
+    let json = jsonld::nodes_to_jsonld(&nodes, context)?;
     let json_string = serde_json::to_string_pretty(&json)?;
     fs::write(output, json_string)?;
     Ok(())
@@ -57,7 +57,7 @@ pub fn rdf_to_jsonld(input: &Path, output: &Path, context: Option<Value>) -> Res
 }
 
 fn excel_to_jsonld_internal(nodes: &[Node], output: &Path, context: Option<Value>) -> Result<()> {
-    let json = jsonld::nodes_to_jsonld(nodes, context);
+    let json = jsonld::nodes_to_jsonld(nodes, context)?;
     let json_string = serde_json::to_string_pretty(&json)?;
     fs::write(output, json_string)?;
     Ok(())

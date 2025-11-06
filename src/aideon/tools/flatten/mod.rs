@@ -33,7 +33,7 @@ pub fn build_workbook(nodes: &[Node]) -> Result<WorkbookData> {
 
     let mut type_builders: BTreeMap<String, TypeTableBuilder> = BTreeMap::new();
     let mut child_builders: BTreeMap<(String, String), ChildTableBuilder> = BTreeMap::new();
-    let mut entities: Vec<(String, String)> = Vec::new();
+    let mut entities: Vec<(String, String, Option<String>)> = Vec::new();
 
     for node in nodes {
         let node_types: Vec<String> = if node.types.is_empty() {
@@ -43,7 +43,7 @@ pub fn build_workbook(nodes: &[Node]) -> Result<WorkbookData> {
         };
 
         for (type_index, type_name) in node_types.iter().enumerate() {
-            entities.push((node.id.clone(), type_name.clone()));
+            entities.push((node.id.clone(), type_name.clone(), node.graph.clone()));
 
             let builder = type_builders
                 .entry(type_name.clone())
@@ -75,7 +75,11 @@ pub fn build_workbook(nodes: &[Node]) -> Result<WorkbookData> {
                                 .entry((type_name.clone(), predicate.clone()))
                                 .or_insert_with(|| ChildTableBuilder::new(predicate.clone()));
                             for target in targets {
-                                child_builder.rows.push((node.id.clone(), target.clone()));
+                                child_builder.rows.push((
+                                    node.id.clone(),
+                                    node.graph.clone(),
+                                    target.clone(),
+                                ));
                             }
                         }
                     }
@@ -84,6 +88,7 @@ pub fn build_workbook(nodes: &[Node]) -> Result<WorkbookData> {
 
             builder.rows.push(RowData {
                 id: node.id.clone(),
+                graph: node.graph.clone(),
                 values: row_values,
             });
         }
@@ -147,15 +152,15 @@ pub fn build_workbook(nodes: &[Node]) -> Result<WorkbookData> {
     Ok(WorkbookData { tables: all_tables })
 }
 
-fn build_entities_table(entries: Vec<(String, String)>) -> SheetTable {
+fn build_entities_table(entries: Vec<(String, String, Option<String>)>) -> SheetTable {
     let rows = entries
         .into_iter()
-        .map(|(id, type_name)| vec![id, type_name])
+        .map(|(id, type_name, graph)| vec![id, type_name, graph.unwrap_or_default()])
         .collect();
 
     SheetTable {
         sheet_name: ENTITIES_SHEET.to_string(),
-        columns: vec!["id".to_string(), "type".to_string()],
+        columns: vec!["id".to_string(), "type".to_string(), "graph".to_string()],
         rows,
     }
 }
@@ -234,15 +239,17 @@ impl TypeTableBuilder {
     }
 
     fn into_table(self, sheet_name: String) -> SheetTable {
-        let mut columns = Vec::with_capacity(self.columns.len() + 1);
+        let mut columns = Vec::with_capacity(self.columns.len() + 2);
         columns.push("id".to_string());
+        columns.push("graph".to_string());
         columns.extend(self.columns);
 
         let mut rows = Vec::with_capacity(self.rows.len());
         for row in self.rows {
             let mut cells = Vec::with_capacity(columns.len());
             cells.push(row.id);
-            for column in columns.iter().skip(1) {
+            cells.push(row.graph.unwrap_or_default());
+            for column in columns.iter().skip(2) {
                 cells.push(row.values.get(column).cloned().unwrap_or_default());
             }
             rows.push(cells);
@@ -258,12 +265,13 @@ impl TypeTableBuilder {
 
 struct RowData {
     id: String,
+    graph: Option<String>,
     values: BTreeMap<String, String>,
 }
 
 struct ChildTableBuilder {
     predicate: String,
-    rows: Vec<(String, String)>,
+    rows: Vec<(String, Option<String>, String)>,
 }
 
 impl ChildTableBuilder {
@@ -279,12 +287,16 @@ impl ChildTableBuilder {
         let rows = self
             .rows
             .into_iter()
-            .map(|(parent, target)| vec![parent, target])
+            .map(|(parent, graph, target)| vec![parent, graph.unwrap_or_default(), target])
             .collect();
 
         SheetTable {
             sheet_name,
-            columns: vec!["ParentId".to_string(), column_name],
+            columns: vec![
+                "ParentId".to_string(),
+                "ParentGraph".to_string(),
+                column_name,
+            ],
             rows,
         }
     }

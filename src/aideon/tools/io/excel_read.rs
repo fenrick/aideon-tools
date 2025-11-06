@@ -8,6 +8,8 @@ use crate::aideon::tools::error::{Result, ToolError};
 use crate::aideon::tools::flatten::{ENTITIES_SHEET, METADATA_SHEET, UNTYPED_MARKER};
 use crate::aideon::tools::model::{ArrayValue, Node, PropertyValue, ScalarValue};
 
+type NodeKey = (Option<String>, String);
+
 type TypeSheetMap = HashMap<String, String>;
 type ChildSheetMap = HashMap<String, (String, String)>;
 
@@ -33,7 +35,7 @@ pub fn read_nodes(path: &Path) -> Result<Vec<Node>> {
     }
 
     let mut nodes: Vec<Node> = nodes.into_values().collect();
-    nodes.sort_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
+    nodes.sort_by(|lhs, rhs| lhs.graph.cmp(&rhs.graph).then_with(|| lhs.id.cmp(&rhs.id)));
     Ok(nodes)
 }
 
@@ -79,7 +81,7 @@ fn parse_metadata(range: &calamine::Range<DataType>) -> Result<(TypeSheetMap, Ch
     Ok((type_sheets, child_sheets))
 }
 
-fn initialize_nodes(range: &calamine::Range<DataType>) -> Result<BTreeMap<String, Node>> {
+fn initialize_nodes(range: &calamine::Range<DataType>) -> Result<BTreeMap<NodeKey, Node>> {
     let mut nodes = BTreeMap::new();
 
     for row in range.rows().skip(1) {
@@ -88,9 +90,13 @@ fn initialize_nodes(range: &calamine::Range<DataType>) -> Result<BTreeMap<String
             continue;
         }
         let type_name = cell_to_string(row.get(1));
+        let graph = cell_to_string(row.get(2));
+        let graph = normalize_optional(graph);
+        let key = (graph.clone(), id.clone());
         let entry = nodes
-            .entry(id.clone())
-            .or_insert_with(|| Node::new(id.clone()));
+            .entry(key)
+            .or_insert_with(|| Node::with_graph(id.clone(), graph.clone()));
+        entry.set_graph(graph);
         if !type_name.is_empty() && type_name != UNTYPED_MARKER {
             entry.types.insert(type_name);
         }
@@ -102,7 +108,7 @@ fn initialize_nodes(range: &calamine::Range<DataType>) -> Result<BTreeMap<String
 fn ingest_type_sheet(
     range: &calamine::Range<DataType>,
     type_name: &str,
-    nodes: &mut BTreeMap<String, Node>,
+    nodes: &mut BTreeMap<NodeKey, Node>,
 ) -> Result<()> {
     let headers: Vec<String> = match range.rows().next() {
         Some(first_row) => first_row
@@ -122,14 +128,22 @@ fn ingest_type_sheet(
             continue;
         }
 
+        let graph = row
+            .get(1)
+            .map(|cell| cell_to_string(Some(cell)))
+            .unwrap_or_default();
+        let graph = normalize_optional(graph);
+        let key = (graph.clone(), id.clone());
+
         let node = nodes
-            .entry(id.clone())
-            .or_insert_with(|| Node::new(id.clone()));
+            .entry(key)
+            .or_insert_with(|| Node::with_graph(id.clone(), graph.clone()));
+        node.set_graph(graph);
         if !type_name.is_empty() && type_name != UNTYPED_MARKER {
             node.types.insert(type_name.to_string());
         }
 
-        for (col_idx, cell) in row.iter().enumerate().skip(1) {
+        for (col_idx, cell) in row.iter().enumerate().skip(2) {
             let header = headers.get(col_idx).cloned().unwrap_or_default();
             if header.is_empty() {
                 continue;
@@ -173,18 +187,34 @@ fn ingest_type_sheet(
 fn ingest_child_sheet(
     range: &calamine::Range<DataType>,
     predicate: &str,
-    nodes: &mut BTreeMap<String, Node>,
+    nodes: &mut BTreeMap<NodeKey, Node>,
 ) -> Result<()> {
+    let header_width = range.rows().next().map(|row| row.len()).unwrap_or(0);
+    let has_graph_column = header_width >= 3;
+
     for row in range.rows().skip(1) {
         let parent = cell_to_string(row.first());
-        let target = cell_to_string(row.get(1));
+        let parent_graph = if has_graph_column {
+            cell_to_string(row.get(1))
+        } else {
+            String::new()
+        };
+        let target = if has_graph_column {
+            cell_to_string(row.get(2))
+        } else {
+            cell_to_string(row.get(1))
+        };
         if parent.is_empty() || target.is_empty() {
             continue;
         }
 
+        let parent_graph = normalize_optional(parent_graph);
+        let key = (parent_graph.clone(), parent.clone());
+
         let node = nodes
-            .entry(parent.clone())
-            .or_insert_with(|| Node::new(parent.clone()));
+            .entry(key)
+            .or_insert_with(|| Node::with_graph(parent.clone(), parent_graph.clone()));
+        node.set_graph(parent_graph);
         match node.properties.get_mut(predicate) {
             Some(PropertyValue::Array(ArrayValue::ObjectRefs(ids))) => {
                 ids.push(target.clone());
@@ -229,4 +259,12 @@ fn value_to_scalar(value: Value) -> Result<ScalarValue> {
         Value::String(value) => ScalarValue::String(value),
         other => ScalarValue::String(serde_json::to_string(&other)?),
     })
+}
+fn normalize_optional(value: String) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
 }

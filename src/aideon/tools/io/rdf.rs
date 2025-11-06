@@ -29,20 +29,18 @@ pub fn read_rdf(path: &Path, format: Option<RdfFormat>) -> Result<Vec<Node>> {
     let parser = RdfParser::from_format(format);
     let quad_parser = parser.for_reader(file);
 
-    let mut nodes: BTreeMap<String, Node> = BTreeMap::new();
+    let mut nodes: BTreeMap<(Option<String>, String), Node> = BTreeMap::new();
 
     for quad_result in quad_parser {
         let quad = quad_result.map_err(|err| ToolError::Rdf(err.to_string()))?;
 
-        if !matches!(quad.graph_name, GraphName::DefaultGraph) {
-            continue;
-        }
-
         let subject_id = subject_to_id(&quad.subject)?;
         let predicate = quad.predicate.as_str().to_string();
+        let graph_name = graph_name_to_string(&quad.graph_name)?;
         let node = nodes
-            .entry(subject_id.clone())
-            .or_insert_with(|| Node::new(subject_id.clone()));
+            .entry((graph_name.clone(), subject_id.clone()))
+            .or_insert_with(|| Node::with_graph(subject_id.clone(), graph_name.clone()));
+        node.set_graph(graph_name);
 
         if predicate == RDF_TYPE {
             if let Term::NamedNode(object) = &quad.object {
@@ -67,6 +65,7 @@ pub fn write_rdf(path: &Path, nodes: &[Node], format: RdfFormat) -> Result<()> {
 
     for node in nodes {
         let subject = id_to_subject(&node.id)?;
+        let graph_name = graph_to_name(node.graph.as_ref())?;
 
         for type_name in &node.types {
             let class = NamedNode::new(type_name).map_err(|err| ToolError::Rdf(err.to_string()))?;
@@ -74,7 +73,7 @@ pub fn write_rdf(path: &Path, nodes: &[Node], format: RdfFormat) -> Result<()> {
                 subject.clone(),
                 rdf_type.clone(),
                 class.clone(),
-                GraphName::DefaultGraph,
+                graph_name.clone(),
             );
             serializer
                 .serialize_quad(&quad)
@@ -91,7 +90,7 @@ pub fn write_rdf(path: &Path, nodes: &[Node], format: RdfFormat) -> Result<()> {
                             subject.clone(),
                             predicate_node.clone(),
                             term,
-                            GraphName::DefaultGraph,
+                            graph_name.clone(),
                         );
                         serializer
                             .serialize_quad(&quad)
@@ -104,7 +103,7 @@ pub fn write_rdf(path: &Path, nodes: &[Node], format: RdfFormat) -> Result<()> {
                         subject.clone(),
                         predicate_node.clone(),
                         term,
-                        GraphName::DefaultGraph,
+                        graph_name.clone(),
                     );
                     serializer
                         .serialize_quad(&quad)
@@ -117,7 +116,7 @@ pub fn write_rdf(path: &Path, nodes: &[Node], format: RdfFormat) -> Result<()> {
                                 subject.clone(),
                                 predicate_node.clone(),
                                 term,
-                                GraphName::DefaultGraph,
+                                graph_name.clone(),
                             );
                             serializer
                                 .serialize_quad(&quad)
@@ -132,7 +131,7 @@ pub fn write_rdf(path: &Path, nodes: &[Node], format: RdfFormat) -> Result<()> {
                             subject.clone(),
                             predicate_node.clone(),
                             term,
-                            GraphName::DefaultGraph,
+                            graph_name.clone(),
                         );
                         serializer
                             .serialize_quad(&quad)
@@ -238,6 +237,29 @@ fn id_to_term(id: &str) -> Result<Term> {
     } else {
         let named = NamedNode::new(id)?;
         Ok(Term::from(named))
+    }
+}
+
+fn graph_name_to_string(name: &GraphName) -> Result<Option<String>> {
+    Ok(match name {
+        GraphName::DefaultGraph => None,
+        GraphName::NamedNode(node) => Some(node.as_str().to_string()),
+        GraphName::BlankNode(node) => Some(format!("_:{}", node.as_str())),
+    })
+}
+
+fn graph_to_name(graph: Option<&String>) -> Result<GraphName> {
+    match graph {
+        None => Ok(GraphName::DefaultGraph),
+        Some(value) => {
+            if let Some(rest) = value.strip_prefix("_:") {
+                let blank = BlankNode::new(rest).map_err(|err| ToolError::Rdf(err.to_string()))?;
+                Ok(GraphName::BlankNode(blank))
+            } else {
+                let named = NamedNode::new(value)?;
+                Ok(GraphName::NamedNode(named))
+            }
+        }
     }
 }
 
