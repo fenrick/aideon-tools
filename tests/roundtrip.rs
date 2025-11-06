@@ -104,6 +104,24 @@ fn excel_to_jsonld_includes_context() {
     let parsed: serde_json::Value = serde_json::from_str(&written).expect("JSON parsed");
 
     assert_eq!(parsed.get("@context"), Some(&context));
+
+    let graph = parsed
+        .get("@graph")
+        .and_then(|value| value.as_array())
+        .expect("graph array");
+    let thing = graph
+        .iter()
+        .find(|entry| {
+            entry.get("@id")
+                == Some(&serde_json::Value::String(
+                    "https://example.com/things/1".into(),
+                ))
+        })
+        .expect("thing node present");
+    assert_eq!(
+        thing.get("name"),
+        Some(&serde_json::Value::String("Widget".into()))
+    );
 }
 
 #[test]
@@ -158,14 +176,80 @@ fn jsonld_rdf_jsonld_roundtrip_preserves_nodes() {
     let roundtrip_path = temp_dir.path().join("roundtrip.jsonld");
     sync::rdf_to_jsonld(&rdf_path, &roundtrip_path, Some(context.clone())).expect("RDF to JSON-LD");
 
-    let roundtrip = fs::read_to_string(&roundtrip_path).expect("roundtrip JSON read");
-    let roundtrip_value: serde_json::Value =
-        serde_json::from_str(&roundtrip).expect("roundtrip JSON parsed");
-
     let original_nodes =
         jsonld::parse_jsonld_document(&json_source).expect("original nodes parsed");
+
+    let verification_rdf = temp_dir.path().join("verify.ttl");
+    sync::jsonld_to_rdf(&roundtrip_path, &verification_rdf, RdfFormat::Turtle)
+        .expect("roundtrip JSON-LD to RDF");
+
     let restored_nodes =
-        jsonld::parse_jsonld_document(&roundtrip_value).expect("roundtrip nodes parsed");
+        rdf::read_rdf(&verification_rdf, Some(RdfFormat::Turtle)).expect("roundtrip nodes parsed");
 
     assert_eq!(original_nodes, restored_nodes);
+}
+
+#[test]
+fn jsonld_excel_named_graph_roundtrip() {
+    let json_source = serde_json::json!({
+        "@graph": [
+            {
+                "@id": "https://example.com/resources/1",
+                "http://schema.org/name": "Default"
+            },
+            {
+                "@id": "https://example.com/graphs/named",
+                "@graph": [
+                    {
+                        "@id": "https://example.com/resources/2",
+                        "http://schema.org/name": "Named"
+                    }
+                ]
+            }
+        ]
+    });
+
+    let nodes = jsonld::parse_jsonld_document(&json_source).expect("JSON-LD parsed");
+    let workbook = build_workbook(&nodes).expect("workbook built");
+    let temp_dir = tempdir().expect("temporary directory");
+    let xlsx_path = temp_dir.path().join("dataset.xlsx");
+    excel_write::write_workbook(&xlsx_path, &workbook).expect("Excel written");
+    let restored_nodes = excel_read::read_nodes(&xlsx_path).expect("Excel read");
+
+    assert_eq!(nodes, restored_nodes);
+    assert!(
+        restored_nodes
+            .iter()
+            .any(|node| node.graph.as_deref() == Some("https://example.com/graphs/named"))
+    );
+}
+
+#[test]
+fn rdf_named_graph_roundtrip_matches_nodes() {
+    let json_source = serde_json::json!({
+        "@graph": [
+            {
+                "@id": "https://example.com/resources/1",
+                "http://schema.org/name": "Default"
+            },
+            {
+                "@id": "https://example.com/graphs/named",
+                "@graph": [
+                    {
+                        "@id": "https://example.com/resources/2",
+                        "http://schema.org/name": "Named"
+                    }
+                ]
+            }
+        ]
+    });
+
+    let nodes = jsonld::parse_jsonld_document(&json_source).expect("JSON-LD parsed");
+    let temp_dir = tempdir().expect("temporary directory");
+    let rdf_path = temp_dir.path().join("dataset.trig");
+
+    rdf::write_rdf(&rdf_path, &nodes, RdfFormat::TriG).expect("RDF written");
+    let restored_nodes = rdf::read_rdf(&rdf_path, Some(RdfFormat::TriG)).expect("RDF read");
+
+    assert_eq!(nodes, restored_nodes);
 }

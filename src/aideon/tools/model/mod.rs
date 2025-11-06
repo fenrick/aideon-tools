@@ -63,6 +63,8 @@ pub enum PropertyValue {
 pub struct Node {
     /// Node identifier.
     pub id: NodeId,
+    /// Optional name of the graph the node belongs to.
+    pub graph: Option<String>,
     /// Node types. Multi-typed nodes contain multiple entries.
     pub types: BTreeSet<String>,
     /// Predicate → value mapping.
@@ -74,9 +76,25 @@ impl Node {
     pub fn new(id: impl Into<NodeId>) -> Self {
         Self {
             id: id.into(),
+            graph: None,
             types: BTreeSet::new(),
             properties: BTreeMap::new(),
         }
+    }
+
+    /// Creates a new node with the provided identifier assigned to the given graph.
+    pub fn with_graph(id: impl Into<NodeId>, graph: Option<String>) -> Self {
+        Self {
+            id: id.into(),
+            graph,
+            types: BTreeSet::new(),
+            properties: BTreeMap::new(),
+        }
+    }
+
+    /// Sets the graph the node belongs to.
+    pub fn set_graph(&mut self, graph: Option<String>) {
+        self.graph = graph;
     }
 
     /// Inserts or replaces a property value.
