@@ -1,7 +1,7 @@
 # Agent Instructions for aideon-tools
 
 ## Code Quality
-- Follow Rust 2021 idioms and keep modules under the `aideon::tools` namespace when adding new code.
+- Follow Rust 2024 idioms and keep modules under the `aideon::tools` namespace when adding new code.
 - Prefer small, single-responsibility functions and modules; refactor shared logic into reusable helpers.
 - Use clear, descriptive identifiers and provide concise Rustdoc comments for all public APIs, including inputs, outputs, and side effects.
 - Implement robust error handling with contextual messages and avoid silently ignoring failures.
