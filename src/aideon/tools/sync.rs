@@ -3,12 +3,13 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use crate::error::Result;
-use crate::flatten::build_workbook;
-use crate::io::excel_read;
-use crate::io::excel_write;
-use crate::io::jsonld;
-use crate::io::rdf::{self, RdfFormat};
+use crate::aideon::tools::error::Result;
+use crate::aideon::tools::flatten::build_workbook;
+use crate::aideon::tools::io::excel_read;
+use crate::aideon::tools::io::excel_write;
+use crate::aideon::tools::io::jsonld;
+use crate::aideon::tools::io::rdf::{self, RdfFormat};
+use crate::aideon::tools::model::Node;
 
 /// Synchronises a JSON-LD document into an Excel workbook.
 pub fn jsonld_to_excel(input: &Path, output: &Path) -> Result<()> {
@@ -55,11 +56,7 @@ pub fn rdf_to_jsonld(input: &Path, output: &Path, context: Option<Value>) -> Res
     excel_to_jsonld_internal(&nodes, output, context)
 }
 
-fn excel_to_jsonld_internal(
-    nodes: &[crate::model::Node],
-    output: &Path,
-    context: Option<Value>,
-) -> Result<()> {
+fn excel_to_jsonld_internal(nodes: &[Node], output: &Path, context: Option<Value>) -> Result<()> {
     let json = jsonld::nodes_to_jsonld(nodes, context);
     let json_string = serde_json::to_string_pretty(&json)?;
     fs::write(output, json_string)?;

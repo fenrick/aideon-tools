@@ -1,9 +1,9 @@
-use aideon_tools::flatten::build_workbook;
-use aideon_tools::io::excel_read;
-use aideon_tools::io::excel_write;
-use aideon_tools::io::jsonld;
-use aideon_tools::io::rdf::{self, RdfFormat};
-use aideon_tools::sync;
+use aideon_tools::aideon::tools::flatten::build_workbook;
+use aideon_tools::aideon::tools::io::excel_read;
+use aideon_tools::aideon::tools::io::excel_write;
+use aideon_tools::aideon::tools::io::jsonld;
+use aideon_tools::aideon::tools::io::rdf::{self, RdfFormat};
+use aideon_tools::aideon::tools::sync;
 use std::fs;
 use tempfile::tempdir;
 

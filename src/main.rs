@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use aideon_tools::io::rdf::{JsonLdProfileSet, RdfFormat};
-use aideon_tools::sync;
+use aideon_tools::aideon::tools::io::rdf::{JsonLdProfileSet, RdfFormat};
+use aideon_tools::aideon::tools::sync;
 use aideon_tools::{Result, ToolError};
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::Value;

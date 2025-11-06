@@ -3,13 +3,10 @@
 //! The library exposes high-level orchestration helpers that power the
 //! command-line interface as well as the unit tests. The modules are structured
 //! to keep responsibilities narrow and composable: IO adapters live under
-//! [`io`], data representations inside [`model`], the Excel flattening logic in
-//! [`flatten`], and the synchronization orchestration under [`sync`].
+//! [`aideon::tools::io`], data representations inside [`aideon::tools::model`], the Excel
+//! flattening logic in [`aideon::tools::flatten`], and the synchronization orchestration under
+//! [`aideon::tools::sync`].
 
-pub mod error;
-pub mod flatten;
-pub mod io;
-pub mod model;
-pub mod sync;
+pub mod aideon;
 
-pub use error::{Result, ToolError};
+pub use aideon::tools::{Result, ToolError, error, flatten, io, model, sync};
