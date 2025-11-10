@@ -75,7 +75,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "thiserror",
+ "thiserror 2.0.17",
  "tracing",
  "tracing-subscriber",
  "uuid",
@@ -839,7 +839,7 @@ dependencies = [
  "pct-str",
  "smallvec",
  "static-regular-grammar",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -888,7 +888,7 @@ dependencies = [
  "json-syntax",
  "locspan",
  "rdf-types",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -910,7 +910,7 @@ dependencies = [
  "langtag",
  "mown",
  "rdf-types",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -927,7 +927,7 @@ dependencies = [
  "mown",
  "owning_ref",
  "rdf-types",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -955,7 +955,7 @@ dependencies = [
  "ryu-js",
  "smallvec",
  "static-iref",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -976,7 +976,7 @@ dependencies = [
  "langtag",
  "mown",
  "rdf-types",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -991,7 +991,7 @@ dependencies = [
  "json-syntax",
  "linked-data",
  "rdf-types",
- "thiserror",
+ "thiserror 1.0.69",
  "xsd-types",
 ]
 
@@ -1012,7 +1012,7 @@ dependencies = [
  "locspan",
  "rdf-types",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1054,7 +1054,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ecb4c689a30e48ebeaa14237f34037e300dd072e6ad21a9ec72e810ff3c6600"
 dependencies = [
  "static-regular-grammar",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1158,7 +1158,7 @@ dependencies = [
  "rdf-types",
  "serde",
  "static-iref",
- "thiserror",
+ "thiserror 1.0.69",
  "xsd-types",
 ]
 
@@ -1174,7 +1174,7 @@ dependencies = [
  "quote",
  "static-iref",
  "syn 2.0.109",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1376,7 +1376,7 @@ dependencies = [
  "sparesults",
  "spareval",
  "spargebra",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1403,7 +1403,7 @@ dependencies = [
  "json-event-parser",
  "oxiri",
  "oxrdf",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1416,7 +1416,7 @@ dependencies = [
  "oxiri",
  "oxsdatatypes",
  "rand",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1429,7 +1429,7 @@ dependencies = [
  "oxrdf",
  "oxrdfxml",
  "oxttl",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1442,7 +1442,7 @@ dependencies = [
  "oxiri",
  "oxrdf",
  "quick-xml 0.37.5",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1451,7 +1451,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06fa874d87eae638daae9b4e3198864fe2cce68589f227c0b2cf5b62b1530516"
 dependencies = [
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1464,7 +1464,7 @@ dependencies = [
  "oxilangtag",
  "oxiri",
  "oxrdf",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1486,7 +1486,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf1bdcc492c285a50bed60860dfa00b50baf1f60c73c7d6b435b01a2a11fd6ff"
 dependencies = [
- "thiserror",
+ "thiserror 1.0.69",
  "utf8-decode",
 ]
 
@@ -1691,7 +1691,7 @@ dependencies = [
  "replace_with",
  "slab",
  "static-iref",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1935,7 +1935,7 @@ dependencies = [
  "memchr",
  "oxrdf",
  "quick-xml 0.37.5",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1958,7 +1958,7 @@ dependencies = [
  "sparesults",
  "spargebra",
  "sparopt",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1972,7 +1972,7 @@ dependencies = [
  "oxrdf",
  "peg",
  "rand",
- "thiserror",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -2020,7 +2020,7 @@ dependencies = [
  "serde",
  "sha2",
  "syn 2.0.109",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2070,7 +2070,16 @@ version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.69",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
+dependencies = [
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -2078,6 +2087,17 @@ name = "thiserror-impl"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.109",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2427,7 +2447,7 @@ dependencies = [
  "pretty_dtoa",
  "static-iref",
  "static-regular-grammar",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
